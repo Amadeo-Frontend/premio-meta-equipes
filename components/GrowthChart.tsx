@@ -22,7 +22,11 @@ export default function GrowthChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 24 }}>
           <XAxis dataKey="name" />
-          <Tooltip formatter={(v: number) => v.toFixed(1) + ' t'} />
+          <Tooltip
+            formatter={(value) =>
+              typeof value === 'number' ? `${value.toFixed(1)} t` : value
+            }
+          />
           <Bar
             dataKey="value"
             radius={[6, 6, 0, 0]}
@@ -32,7 +36,9 @@ export default function GrowthChart({
               dataKey="value"
               position="top"
               fill="currentColor"
-              formatter={(v: number) => v.toFixed(1)}
+              formatter={(value) =>
+                typeof value === 'number' ? value.toFixed(1) : value
+              }
             />
           </Bar>
         </BarChart>
