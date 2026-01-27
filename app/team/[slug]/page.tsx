@@ -85,7 +85,7 @@ export default function TeamPage() {
   const team = slug ? teams[slug.toLowerCase() as keyof typeof teams] : undefined
 
   useEffect(() => {
-    if (!team && slug) toast.error('Equipe não encontrada')
+    if (!team && slug) toast.error('🚫 Equipe não encontrada')
   }, [team, slug])
 
   const semesters = useMemo(() => team ? buildSemesters(team) : [], [team])
@@ -144,6 +144,12 @@ export default function TeamPage() {
     [selectedBase, selectedActual],
   )
 
+  const hasAnyInput = useMemo(() => {
+    const hasTotal = totalInput.trim() !== ''
+    const hasMonthly = Object.values(monthInputs || {}).some(v => (v || '').trim() !== '')
+    return hasTotal || hasMonthly
+  }, [monthInputs, totalInput])
+
   const targetForSelected = selectedBase + selectedPrize.growthTarget
   const targetForSemester = baseSemester + semesterPrize.growthTarget
   const chartBase = selectedBase
@@ -152,7 +158,7 @@ export default function TeamPage() {
 
   useEffect(() => {
     if (semesterPrize.progressPercent >= 100) {
-      toast.success('Prêmio máximo garantido!')
+      toast.success('🏆 Prêmio máximo garantido!')
     }
   }, [semesterPrize.progressPercent])
 
@@ -317,6 +323,10 @@ export default function TeamPage() {
   }
 
   const handlePrint = () => {
+    if (!hasAnyInput) {
+      toast.error('⚠️ Preencha algum valor antes de imprimir ou exportar.')
+      return
+    }
     if (typeof window === 'undefined') return
     const html = buildPrintHtml()
 
@@ -403,6 +413,7 @@ export default function TeamPage() {
             variant="outline"
             className="w-full sm:w-auto gap-2 cursor-pointer hover:shadow-sm transition-transform hover:-translate-y-[1px]"
             onClick={handlePrint}
+            disabled={!hasAnyInput}
           >
             <Printer size={18} />
             Imprimir / Exportar
