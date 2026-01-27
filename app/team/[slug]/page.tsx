@@ -421,7 +421,7 @@ export default function TeamPage() {
   )
 
   return (
-    <main className="min-h-screen bg-muted p-4 md:p-8 space-y-4">
+    <main className="min-h-screen bg-muted p-4 md:p-8 space-y-4 overflow-x-hidden">
       <div className="flex items-center gap-3 flex-wrap">
         {team.logo && (
           <Image src={team.logo} alt={team.name} width={60} height={60} />
@@ -440,12 +440,13 @@ export default function TeamPage() {
           </Select>
           <Button
             variant="outline"
-            className="w-full sm:w-auto gap-2 cursor-pointer hover:shadow-sm transition-transform hover:-translate-y-[1px]"
+            className="w-11 sm:w-auto px-2 sm:px-3 gap-2 cursor-pointer hover:shadow-sm transition-transform hover:-translate-y-[1px]"
             onClick={handlePrint}
             disabled={!hasAnyInput}
+            aria-label="Imprimir ou exportar"
           >
-            <Printer size={18} />
-            Imprimir / Exportar
+            <Printer size={18} className="shrink-0" />
+            <span className="hidden sm:inline">Imprimir / Exportar</span>
           </Button>
         </div>
       </div>
