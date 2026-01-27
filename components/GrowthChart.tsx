@@ -1,6 +1,6 @@
-﻿'use client'
+'use client'
 
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts'
 
 export default function GrowthChart({
   base,
@@ -11,10 +11,15 @@ export default function GrowthChart({
   actual: number
   target: number
 }) {
+  const primary = 'rgb(var(--primary))'
+  const neutral = '#94a3b8' // cor neutra para base
+  const success = '#22c55e' // verde para meta
+  const danger = '#ef4444' // vermelho quando ficar negativo
+
   const data = [
-    { name: 'Base 2025', value: base },
-    { name: 'Real', value: actual },
-    { name: 'Meta', value: target },
+    { name: 'Base', value: base, fill: neutral },
+    { name: 'Real', value: actual, fill: actual >= base ? primary : danger },
+    { name: 'Meta', value: target, fill: success },
   ]
 
   return (
@@ -30,8 +35,10 @@ export default function GrowthChart({
           <Bar
             dataKey="value"
             radius={[6, 6, 0, 0]}
-            fill="rgb(var(--primary))"
           >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
             <LabelList
               dataKey="value"
               position="top"

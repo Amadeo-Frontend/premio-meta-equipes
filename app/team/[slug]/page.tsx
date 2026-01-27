@@ -8,6 +8,7 @@ import { teams } from '@/data/teams'
 import { calcPrizeProgress } from '@/lib/calc'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import GrowthChart from '@/components/GrowthChart'
 import { toast } from 'sonner'
@@ -20,6 +21,21 @@ const semesterMonths = {
 type SemesterKey = keyof typeof semesterMonths
 
 type Month = typeof semesterMonths[keyof typeof semesterMonths][number]
+
+const monthLabels: Record<Month, string> = {
+  jan: 'Jan',
+  fev: 'Fev',
+  mar: 'Mar',
+  abr: 'Abr',
+  mai: 'Mai',
+  jun: 'Jun',
+  jul: 'Jul',
+  ago: 'Ago',
+  set: 'Set',
+  out: 'Out',
+  nov: 'Nov',
+  dez: 'Dez',
+}
 
 type Semester = {
   id: string
@@ -153,6 +169,189 @@ export default function TeamPage() {
     }
   }
 
+  const formatNumber = (value: number, minimumFractionDigits = 2, maximumFractionDigits = 2) =>
+    value.toLocaleString('pt-BR', { minimumFractionDigits, maximumFractionDigits })
+
+  const buildPrintHtml = () => {
+    const rows = activeSemester.months.map(m => {
+      const baseValue = base[m] ?? 0
+      const realValue = toNumber(monthInputs[m] || '') * factor
+      const progress = calcPrizeProgress(baseValue, realValue).progressPercent
+      return {
+        month: monthLabels[m],
+        baseValue,
+        realValue,
+        progress,
+      }
+    })
+
+    // Se o usuário informou um total do semestre, não exibir linhas mensais (mesmo que existam valores antigos)
+    const isTotalAggregate = period === 'total' && totalInput.trim() !== ''
+    const detailedRows = isTotalAggregate ? [] : rows.filter(r => r.realValue > 0)
+    const hasDetails = detailedRows.length > 0
+
+    const unitLabel = unit === 'kg' ? 'kg (convertido para t nos cálculos)' : 't'
+
+    return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório ${team.name} - ${activeSemester.label}</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:32px 28px; font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; background:#f6f8fb; color:#0f172a; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:24px; }
+    h1 { margin:0; font-size:28px; }
+    .subtitle { color:#475569; margin:4px 0 0; }
+    .badge { display:inline-flex; align-items:center; gap:6px; background:#e0e7ff; color:#4338ca; padding:6px 10px; border-radius:999px; font-weight:600; font-size:12px; letter-spacing:0.02em; }
+    .grid { display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom:18px; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; box-shadow:0 8px 24px rgba(15, 23, 42, 0.06); }
+    .card h3 { margin:0 0 6px; font-size:14px; letter-spacing:0.02em; text-transform:uppercase; color:#475569; }
+    .value { font-size:22px; margin:2px 0; font-weight:700; }
+    .muted { color:#64748b; font-size:12px; margin:0; }
+    table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(15, 23, 42, 0.06); }
+    th, td { padding:10px 12px; text-align:left; font-size:13px; }
+    th { background:#f8fafc; color:#0f172a; letter-spacing:0.01em; }
+    tbody tr:nth-child(even) { background:#fff; }
+    tbody tr:nth-child(odd) { background:#fdfefe; }
+    tbody tr:last-child td { border-bottom:0; }
+    td { border-bottom:1px solid #e2e8f0; }
+    tfoot td { font-weight:700; background:#f8fafc; }
+    .progress { font-weight:600; }
+    .small { font-size:11px; color:#475569; margin-top:6px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; box-shadow:0 6px 18px rgba(15,23,42,0.05); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>${team.name}</h1>
+        <p class="subtitle">${activeSemester.label} • Unidade: ${unitLabel}</p>
+      </div>
+      <div class="badge">Relatório pronto para impressão</div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Resumo do semestre</h3>
+        <div class="value">${formatNumber(actualSemester)} t</div>
+        <p class="muted">Real acumulado</p>
+        <p class="muted">Base: ${formatNumber(baseSemester)} t</p>
+      </div>
+      <div class="card">
+        <h3>Meta de crescimento (25%)</h3>
+        <div class="value">${formatNumber(targetForSemester)} t</div>
+        <p class="muted">Precisa atingir: +${formatNumber(semesterPrize.growthTarget)} t</p>
+      </div>
+      <div class="card">
+        <h3>Progresso</h3>
+        <div class="value">${formatNumber(semesterPrize.progressPercent, 1, 1)}%</div>
+        <p class="muted">Prêmio estimado: R$ ${formatNumber(semesterPrize.dynamicPrize)}</p>
+      </div>
+    </div>
+
+    <section>
+      ${hasDetails ? `
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28%">Mês</th>
+            <th>Base (t)</th>
+            <th>Real informado (t)</th>
+            <th>Progresso</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detailedRows.map(r => `
+            <tr>
+              <td>${r.month}</td>
+              <td>${formatNumber(r.baseValue)}</td>
+              <td>${formatNumber(r.realValue)}</td>
+              <td class="progress">${formatNumber(r.progress, 1, 1)}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total semestre</td>
+            <td>${formatNumber(baseSemester)}</td>
+            <td>${formatNumber(actualSemester)}</td>
+            <td>${formatNumber(semesterPrize.progressPercent, 1, 1)}%</td>
+          </tr>
+        </tfoot>
+      </table>
+      ` : `
+      <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+        <div>
+          <h3>Sem detalhamento mensal</h3>
+          <p class="muted">Foi informado apenas o total do semestre.</p>
+        </div>
+        <div class="pill">
+          <div>
+            <div class="muted">Base</div>
+            <div class="value" style="font-size:18px; margin:0;">${formatNumber(baseSemester)} t</div>
+          </div>
+          <div>
+            <div class="muted">Real</div>
+            <div class="value" style="font-size:18px; margin:0;">${formatNumber(actualSemester)} t</div>
+          </div>
+          <div>
+            <div class="muted">Progresso</div>
+            <div class="value" style="font-size:18px; margin:0;">${formatNumber(semesterPrize.progressPercent, 1, 1)}%</div>
+          </div>
+        </div>
+      </div>
+      `}
+      <p class="small">Use a opção de imprimir do navegador (Ctrl+P / Command+P) para salvar em PDF ou enviar para a impressora.</p>
+    </section>
+  </div>
+</body>
+</html>
+    `
+  }
+
+  const handlePrint = () => {
+    if (typeof window === 'undefined') return
+    const html = buildPrintHtml()
+
+    const printWindow = window.open('', '_blank', 'width=900,height=900')
+    if (printWindow) {
+      const doc = printWindow.document
+      doc.open()
+      doc.write(html)
+      doc.close()
+      printWindow.focus()
+      setTimeout(() => printWindow.print(), 120) // garante que o layout carregue antes de imprimir
+      return
+    }
+
+    // Fallback via iframe (caso popup seja bloqueado)
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+    const doc = iframe.contentWindow?.document
+    if (doc) {
+      doc.open()
+      doc.write(html)
+      doc.close()
+      iframe.contentWindow?.focus()
+      setTimeout(() => {
+        iframe.contentWindow?.print()
+        document.body.removeChild(iframe)
+      }, 120)
+    }
+  }
+
   const InfoAndCharts = (
     <div className="grid lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
@@ -188,14 +387,19 @@ export default function TeamPage() {
           <Image src={team.logo} alt={team.name} width={60} height={60} />
         )}
         <h1 className="text-2xl font-bold flex-1 min-w-[200px]">{team.name}</h1>
-        <Select value={semesterId ?? activeSemester.id} onValueChange={v => setSemesterId(v)}>
-          <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px]"><SelectValue placeholder="Semestre" /></SelectTrigger>
-          <SelectContent>
-            {semesters.map(s => (
-              <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={semesterId ?? activeSemester.id} onValueChange={v => setSemesterId(v)}>
+            <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px]"><SelectValue placeholder="Semestre" /></SelectTrigger>
+            <SelectContent>
+              {semesters.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={handlePrint}>
+            Imprimir / Exportar
+          </Button>
+        </div>
       </div>
 
       <Card>

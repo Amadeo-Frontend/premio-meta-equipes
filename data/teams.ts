@@ -36,5 +36,13 @@ export const teams = {
       mai: 56.579,
       jun: 56.579,
     },
+    base2025S2: {
+      jul: 59.060,
+      ago: 55.470,
+      set: 60.526,
+      out: 63.056,
+      nov: 54.386,
+      dez: 38.724,
+    },
   },
 } as const
