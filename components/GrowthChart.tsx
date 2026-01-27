@@ -6,10 +6,14 @@ export default function GrowthChart({
   base,
   actual,
   target,
+  unit = 't',
+  decimals = 2,
 }: {
   base: number
   actual: number
   target: number
+  unit?: string
+  decimals?: number
 }) {
   const primary = 'rgb(var(--primary))'
   const neutral = '#94a3b8' // cor neutra para base
@@ -22,6 +26,9 @@ export default function GrowthChart({
     { name: 'Meta', value: target, fill: success },
   ]
 
+  const format = (value: number) =>
+    value.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+
   return (
     <div className="h-[240px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -29,7 +36,7 @@ export default function GrowthChart({
           <XAxis dataKey="name" />
           <Tooltip
             formatter={(value) =>
-              typeof value === 'number' ? `${value.toFixed(1)} t` : value
+              typeof value === 'number' ? `${format(value)} ${unit}` : value
             }
           />
           <Bar
@@ -44,7 +51,7 @@ export default function GrowthChart({
               position="top"
               fill="currentColor"
               formatter={(value) =>
-                typeof value === 'number' ? value.toFixed(1) : value
+                typeof value === 'number' ? format(value) : value
               }
             />
           </Bar>
