@@ -189,7 +189,7 @@ export default function TeamPage() {
         )}
         <h1 className="text-2xl font-bold flex-1 min-w-[200px]">{team.name}</h1>
         <Select value={semesterId ?? activeSemester.id} onValueChange={v => setSemesterId(v)}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Semestre" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px]"><SelectValue placeholder="Semestre" /></SelectTrigger>
           <SelectContent>
             {semesters.map(s => (
               <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
@@ -204,7 +204,7 @@ export default function TeamPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3 max-w-3xl lg:max-w-none">
-            <div className="lg:flex lg:items-center lg:gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
               <Select value={period} onValueChange={v => setPeriod(v as string)}>
                 <SelectTrigger><SelectValue placeholder="Total" /></SelectTrigger>
                 <SelectContent>
@@ -216,7 +216,7 @@ export default function TeamPage() {
               </Select>
 
               <Input
-                className="lg:max-w-sm"
+                className="w-full lg:max-w-sm"
                 type="number"
                 placeholder={period === 'total' ? 'Total no semestre' : 'Venda do mês'}
                 value={period === 'total' ? totalInput : monthInputs[period] || ''}
@@ -224,7 +224,7 @@ export default function TeamPage() {
               />
 
               <Select value={unit} onValueChange={v => setUnit(v as Unit)}>
-                <SelectTrigger className="w-[90px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px] lg:w-[90px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="kg">kg</SelectItem>
                   <SelectItem value="t">t</SelectItem>
