@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import GrowthChart from '@/components/GrowthChart'
 import { toast } from 'sonner'
+import { Printer } from 'lucide-react'
 
 const semesterMonths = {
   S1: ['jan', 'fev', 'mar', 'abr', 'mai', 'jun'] as const,
@@ -389,14 +390,21 @@ export default function TeamPage() {
         <h1 className="text-2xl font-bold flex-1 min-w-[200px]">{team.name}</h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={semesterId ?? activeSemester.id} onValueChange={v => setSemesterId(v)}>
-            <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px]"><SelectValue placeholder="Semestre" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px] cursor-pointer hover:bg-muted/60 transition-colors">
+              <SelectValue placeholder="Semestre" />
+            </SelectTrigger>
             <SelectContent>
               {semesters.map(s => (
                 <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={handlePrint}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto gap-2 cursor-pointer hover:shadow-sm transition-transform hover:-translate-y-[1px]"
+            onClick={handlePrint}
+          >
+            <Printer size={18} />
             Imprimir / Exportar
           </Button>
         </div>
@@ -410,7 +418,9 @@ export default function TeamPage() {
           <div className="space-y-3 max-w-3xl lg:max-w-none">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
               <Select value={period} onValueChange={v => setPeriod(v as string)}>
-                <SelectTrigger><SelectValue placeholder="Total" /></SelectTrigger>
+                <SelectTrigger className="cursor-pointer hover:bg-muted/60 transition-colors">
+                  <SelectValue placeholder="Total" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="total">TOTAL</SelectItem>
                   {months.map(m => (
@@ -428,7 +438,9 @@ export default function TeamPage() {
               />
 
               <Select value={unit} onValueChange={v => setUnit(v as Unit)}>
-                <SelectTrigger className="w-full sm:w-[120px] lg:w-[90px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px] lg:w-[90px] cursor-pointer hover:bg-muted/60 transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="kg">kg</SelectItem>
                   <SelectItem value="t">t</SelectItem>
