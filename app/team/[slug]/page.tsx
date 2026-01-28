@@ -53,11 +53,30 @@ type Unit = 'kg' | 't'
 
 const toNumber = (value: string) => {
   if (!value) return 0
-  const n = Number(value.replace(',', '.'))
+
+  const trimmed = value.trim()
+  if (!trimmed) return 0
+
+  // Identifica o último separador (ponto ou vírgula) como separador decimal
+  const decimalMatch = trimmed.match(/[.,](?=[^.,]*$)/)
+  const decimalSeparator = decimalMatch ? decimalMatch[0] : null
+
+  let normalized = trimmed
+  if (decimalSeparator) {
+    const [intPart, fracPart] = normalized.split(decimalSeparator)
+    const cleanInt = intPart.replace(/[^\d-]/g, '')
+    const cleanFrac = fracPart.replace(/[^\d]/g, '')
+    normalized = `${cleanInt}.${cleanFrac}`
+  } else {
+    // Sem separador decimal: remove todos os separadores de milhar
+    normalized = normalized.replace(/[^\d-]/g, '')
+  }
+
+  const n = Number(normalized)
   return Number.isFinite(n) ? n : 0
 }
 
-function buildSemesters(team: Record<string, any>): Semester[] {
+function buildSemesters(team: Record<string, unknown>): Semester[] {
   const list: Semester[] = []
   Object.entries(team).forEach(([key, value]) => {
     if (!key.startsWith('base')) return
@@ -92,86 +111,60 @@ export default function TeamPage() {
   const [semesterId, setSemesterId] = useState<string | null>(null)
   const [unit, setUnit] = useState<Unit>('kg')
 
-  useEffect(() => {
-    if (!semesterId && semesters.length) setSemesterId(semesters[0].id)
-  }, [semesterId, semesters])
+  const selectedSemesterId = useMemo(
+    () => (semesterId && semesters.some(s => s.id === semesterId))
+      ? semesterId
+      : semesters[0]?.id ?? null,
+    [semesterId, semesters],
+  )
 
-  const activeSemester = semesters.find(s => s.id === semesterId) ?? semesters[0]
+  const activeSemester = semesters.find(s => s.id === selectedSemesterId)
   const months = activeSemester?.months ?? semesterMonths.S1
+  const activeSemesterId = activeSemester?.id ?? '__none__'
 
   const [period, setPeriod] = useState<string>('total')
-  useEffect(() => { setPeriod('total') }, [semesterId])
 
   const [totals, setTotals] = useState<Record<string, string>>({})
   const [monthly, setMonthly] = useState<Record<string, Record<string, string>>>({})
 
-  useEffect(() => {
-    if (activeSemester && !monthly[activeSemester.id]) {
-      setMonthly(prev => ({
-        ...prev,
-        [activeSemester.id]: Object.fromEntries(activeSemester.months.map(m => [m, ''])) as Record<string, string>,
-      }))
-    }
-    if (activeSemester && totals[activeSemester.id] === undefined) {
-      setTotals(prev => ({ ...prev, [activeSemester.id]: '' }))
-    }
-  }, [activeSemester, monthly, totals])
-
-  if (!team || !activeSemester) return null
-
-  const base = activeSemester.base
+  const base = activeSemester?.base ?? {}
   const kgPerStoredUnit = 1000 // valores no data representam milhares de kg; multiplicamos por 1000 para obter kg
   const toDisplay = (valueKg: number) => (unit === 'kg' ? valueKg : valueKg / 1000)
 
-  const baseInKg = useMemo(
-    () => Object.fromEntries(
-      Object.entries(base || {}).map(([month, value]) => [month, (value ?? 0) * kgPerStoredUnit]),
-    ) as Record<string, number>,
-    [base],
-  )
-  const baseInDisplay = useMemo(
-    () => Object.fromEntries(
-      Object.entries(baseInKg).map(([month, value]) => [month, toDisplay(value)]),
-    ) as Record<string, number>,
-    [baseInKg, unit],
-  )
-  const baseSemesterKg = activeSemester.months.reduce((sum, m) => sum + (baseInKg[m] ?? 0), 0)
-  const baseSemesterDisplay = toDisplay(baseSemesterKg)
+  const baseInKg = Object.fromEntries(
+    Object.entries(base || {}).map(([month, value]) => [month, (value ?? 0) * kgPerStoredUnit]),
+  ) as Record<string, number>
+  const baseSemesterKg = (activeSemester?.months ?? []).reduce((sum, m) => sum + (baseInKg[m] ?? 0), 0)
 
-  const monthInputs = monthly[activeSemester.id] || Object.fromEntries(activeSemester.months.map(m => [m, '']))
-  const totalInput = totals[activeSemester.id] || ''
+  const monthInputs = monthly[activeSemesterId] || Object.fromEntries(months.map(m => [m, '']))
+  const totalInput = totals[activeSemesterId] || ''
 
   const inputToKg = (value: string) => toNumber(value) * (unit === 'kg' ? 1 : 1000)
 
-  const monthlySumKg = activeSemester.months.reduce((acc, m) => acc + inputToKg(monthInputs[m] || ''), 0)
+  const monthlySumKg = months.reduce((acc, m) => acc + inputToKg(monthInputs[m] || ''), 0)
   const actualSemesterKg = period === 'total'
     ? (totalInput.trim() ? inputToKg(totalInput) : monthlySumKg)
     : monthlySumKg
-  const actualSemesterDisplay = toDisplay(actualSemesterKg)
 
-  const semesterPrize = useMemo(
-    () => calcPrizeProgress(baseSemesterKg, actualSemesterKg),
-    [baseSemesterKg, actualSemesterKg],
-  )
+  const semesterPrize = calcPrizeProgress(baseSemesterKg, actualSemesterKg)
 
   const selectedMonth = period === 'total' ? null : (period as Month)
   const selectedBaseKg = selectedMonth ? baseInKg[selectedMonth] || 0 : baseSemesterKg
   const selectedActualKg = selectedMonth ? inputToKg(monthInputs[selectedMonth] || '') : actualSemesterKg
   const selectedBaseDisplay = toDisplay(selectedBaseKg)
   const selectedActualDisplay = toDisplay(selectedActualKg)
-  const selectedPrize = useMemo(
-    () => calcPrizeProgress(selectedBaseKg, selectedActualKg),
-    [selectedBaseKg, selectedActualKg],
-  )
+  const selectedPrize = calcPrizeProgress(selectedBaseKg, selectedActualKg)
 
-  const hasAnyInput = useMemo(() => {
+  const hasAnyInput = (() => {
     const hasTotal = totalInput.trim() !== ''
     const hasMonthly = Object.values(monthInputs || {}).some(v => (v || '').trim() !== '')
     return hasTotal || hasMonthly
-  }, [monthInputs, totalInput])
+  })()
 
-  const targetForSelectedDisplay = toDisplay(selectedBaseKg + selectedPrize.growthTarget)
-  const targetForSemesterDisplay = toDisplay(baseSemesterKg + semesterPrize.growthTarget)
+  const targetForSelectedKg = selectedBaseKg + selectedPrize.growthTarget
+  const targetForSemesterKg = baseSemesterKg + semesterPrize.growthTarget
+  const targetForSelectedDisplay = toDisplay(targetForSelectedKg)
+  const targetForSemesterDisplay = toDisplay(targetForSemesterKg)
   const chartBase = selectedBaseDisplay
   const chartActual = selectedActualDisplay
   const chartTarget = period === 'total' ? targetForSemesterDisplay : targetForSelectedDisplay
@@ -199,27 +192,28 @@ export default function TeamPage() {
   const formatNumber = (value: number, minimumFractionDigits = 2, maximumFractionDigits = 2) =>
     value.toLocaleString('pt-BR', { minimumFractionDigits, maximumFractionDigits })
 
-  const formatMass = (value: number) => formatNumber(value, unit === 't' ? 3 : 2, unit === 't' ? 3 : 2)
+  const formatKg = (valueKg: number) => formatNumber(valueKg, 2, 2)
+  const formatTon = (valueKg: number) => formatNumber(valueKg / 1000, 3, 3)
+  const formatMassPair = (valueKg: number) => `${formatKg(valueKg)} kg / ${formatTon(valueKg)} t`
+
   const unitLabel = unit === 'kg' ? 'kg' : 't'
 
   const buildPrintHtml = () => {
     const rows = activeSemester.months.map(m => {
-      const baseValueKg = base[m] ?? 0
-      const realValueKg = toNumber(monthInputs[m] || '')
+      const baseValueKg = baseInKg[m] ?? 0
+      const realValueKg = inputToKg(monthInputs[m] || '')
       const progress = calcPrizeProgress(baseValueKg, realValueKg).progressPercent
-      const baseValue = toDisplay(baseValueKg)
-      const realValue = toDisplay(realValueKg)
       return {
         month: monthLabels[m],
-        baseValue,
-        realValue,
+        baseValueKg,
+        realValueKg,
         progress,
       }
     })
 
     // Se o usuário informou um total do semestre, não exibir linhas mensais (mesmo que existam valores antigos)
     const isTotalAggregate = period === 'total' && totalInput.trim() !== ''
-    const detailedRows = isTotalAggregate ? [] : rows.filter(r => r.realValue > 0)
+    const detailedRows = isTotalAggregate ? [] : rows.filter(r => r.realValueKg > 0)
     const hasDetails = detailedRows.length > 0
 
     return `
@@ -261,7 +255,7 @@ export default function TeamPage() {
     <header>
       <div>
         <h1>${team.name}</h1>
-        <p class="subtitle">${activeSemester.label} • Unidade: ${unitLabel}</p>
+        <p class="subtitle">${activeSemester.label} • Valores em kg e t</p>
       </div>
       <div class="badge">Relatório pronto para impressão</div>
     </header>
@@ -269,14 +263,14 @@ export default function TeamPage() {
     <div class="grid">
       <div class="card">
         <h3>Resumo do semestre</h3>
-        <div class="value">${formatMass(actualSemesterDisplay)} ${unitLabel}</div>
-        <p class="muted">Real acumulado</p>
-        <p class="muted">Base: ${formatMass(baseSemesterDisplay)} ${unitLabel}</p>
+        <div class="value">${formatMassPair(actualSemesterKg)}</div>
+        <p class="muted">Real acumulado (kg / t)</p>
+        <p class="muted">Base: ${formatMassPair(baseSemesterKg)}</p>
       </div>
       <div class="card">
         <h3>Meta de crescimento (25%)</h3>
-        <div class="value">${formatMass(targetForSemesterDisplay)} ${unitLabel}</div>
-        <p class="muted">Precisa atingir: +${formatMass(toDisplay(semesterPrize.growthTarget))} ${unitLabel}</p>
+        <div class="value">${formatMassPair(targetForSemesterKg)}</div>
+        <p class="muted">Precisa atingir: +${formatMassPair(semesterPrize.growthTarget)}</p>
       </div>
       <div class="card">
         <h3>Progresso</h3>
@@ -291,8 +285,8 @@ export default function TeamPage() {
         <thead>
           <tr>
             <th style="width:28%">Mês</th>
-            <th>Base (${unitLabel})</th>
-            <th>Real informado (${unitLabel})</th>
+            <th>Base (kg / t)</th>
+            <th>Real informado (kg / t)</th>
             <th>Progresso</th>
           </tr>
         </thead>
@@ -300,8 +294,8 @@ export default function TeamPage() {
           ${detailedRows.map(r => `
             <tr>
               <td>${r.month}</td>
-              <td>${formatMass(r.baseValue)}</td>
-              <td>${formatMass(r.realValue)}</td>
+              <td>${formatMassPair(r.baseValueKg)}</td>
+              <td>${formatMassPair(r.realValueKg)}</td>
               <td class="progress">${formatNumber(r.progress, 1, 1)}%</td>
             </tr>
           `).join('')}
@@ -309,8 +303,8 @@ export default function TeamPage() {
         <tfoot>
           <tr>
             <td>Total semestre</td>
-            <td>${formatMass(baseSemesterDisplay)}</td>
-            <td>${formatMass(actualSemesterDisplay)}</td>
+            <td>${formatMassPair(baseSemesterKg)}</td>
+            <td>${formatMassPair(actualSemesterKg)}</td>
             <td>${formatNumber(semesterPrize.progressPercent, 1, 1)}%</td>
           </tr>
         </tfoot>
@@ -324,11 +318,11 @@ export default function TeamPage() {
         <div class="pill">
           <div>
             <div class="muted">Base</div>
-            <div class="value" style="font-size:18px; margin:0;">${formatMass(baseSemesterDisplay)} ${unitLabel}</div>
+            <div class="value" style="font-size:18px; margin:0;">${formatMassPair(baseSemesterKg)}</div>
           </div>
           <div>
             <div class="muted">Real</div>
-            <div class="value" style="font-size:18px; margin:0;">${formatMass(actualSemesterDisplay)} ${unitLabel}</div>
+            <div class="value" style="font-size:18px; margin:0;">${formatMassPair(actualSemesterKg)}</div>
           </div>
           <div>
             <div class="muted">Progresso</div>
@@ -386,21 +380,23 @@ export default function TeamPage() {
     }
   }
 
+  if (!team || !activeSemester) return null
+
   const InfoAndCharts = (
     <div className="grid lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         <div className="rounded-lg border bg-card/60 p-4 shadow-sm space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">{selectedMonth ? `Mês ${selectedMonth.toUpperCase()}` : activeSemester.label}</p>
-          <p>Base considerada: <b>{formatMass(selectedBaseDisplay)} {unitLabel}</b></p>
-          <p>Real informado: <b>{formatMass(selectedActualDisplay)} {unitLabel}</b></p>
+          <p>Base considerada: <b>{formatMassPair(selectedBaseKg)}</b></p>
+          <p>Real informado: <b>{formatMassPair(selectedActualKg)}</b></p>
           <p>Progresso da meta: <b>{selectedPrize.progressPercent.toFixed(1)}%</b></p>
           <p className="text-lg">Prêmio estimado: <b>R$ {selectedPrize.dynamicPrize.toFixed(2)}</b></p>
         </div>
 
         <div className="rounded-lg border bg-card/60 p-4 shadow-sm space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Semestre {activeSemester.label}</p>
-          <p>Base {activeSemester.label}: <b>{formatMass(baseSemesterDisplay)} {unitLabel}</b></p>
-          <p>Real acumulado: <b>{formatMass(actualSemesterDisplay)} {unitLabel}</b></p>
+          <p>Base {activeSemester.label}: <b>{formatMassPair(baseSemesterKg)}</b></p>
+          <p>Real acumulado: <b>{formatMassPair(actualSemesterKg)}</b></p>
           <p>Progresso da meta: <b>{semesterPrize.progressPercent.toFixed(1)}%</b></p>
           <p className="text-lg">Prêmio projetado: <b>R$ {semesterPrize.dynamicPrize.toFixed(2)}</b></p>
         </div>
@@ -428,7 +424,7 @@ export default function TeamPage() {
         )}
         <h1 className="text-2xl font-bold flex-1 min-w-[200px]">{team.name}</h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={semesterId ?? activeSemester.id} onValueChange={v => setSemesterId(v)}>
+          <Select value={selectedSemesterId ?? ''} onValueChange={v => { setSemesterId(v); setPeriod('total') }}>
             <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px] cursor-pointer hover:bg-muted/60 transition-colors">
               <SelectValue placeholder="Semestre" />
             </SelectTrigger>
@@ -491,7 +487,7 @@ export default function TeamPage() {
 
             {period !== 'total' && (
               <p className="text-sm text-muted-foreground">
-                Base {period.toUpperCase()} {activeSemester.label}: <b className="text-foreground">{formatMass(baseInDisplay[period] ?? 0)} {unitLabel}</b>
+                Base {period.toUpperCase()} {activeSemester.label}: <b className="text-foreground">{formatMassPair(baseInKg[period] ?? 0)}</b>
               </p>
             )}
 
@@ -500,6 +496,10 @@ export default function TeamPage() {
                 Deixe em branco para usar a soma dos meses ou preencha o total acumulado ({activeSemester.label}). Unidade selecionada: {unit}.
               </p>
             )}
+
+            <p className="text-[11px] text-muted-foreground">
+              Os resultados são sempre exibidos em kg e toneladas; escolha a unidade apenas para informar os dados.
+            </p>
           </div>
 
           {InfoAndCharts}
