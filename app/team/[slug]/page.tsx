@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import GrowthChart from '@/components/GrowthChart'
 import { Button } from '@/components/ui/button'
@@ -360,35 +360,35 @@ export default function TeamPage() {
   if (!team || !activeSemester) return null
 
   const InfoAndCharts = activeSemester && team ? (
-    <div className="grid lg:grid-cols-2 gap-6 items-start">
-      <div className="space-y-4">
-        <div className="glass-card p-6 space-y-4">
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{selectedMonth ? `Período: ${selectedMonth.toUpperCase()}` : `Semestre: ${activeSemester.label}`}</p>
+    <div className="grid lg:grid-cols-2 gap-8 items-start">
+      <div className="space-y-6">
+        <div className="glass-card p-8 space-y-6">
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold">{selectedMonth ? `Período: ${selectedMonth.toUpperCase()}` : `Semestre: ${activeSemester.label}`}</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground">Base</p>
-                <p className="text-lg font-bold">{formatTon(selectedBaseTon)}</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold">Base</p>
+                <p className="text-2xl font-black text-[rgb(var(--text))]">{formatTon(selectedBaseTon)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Real</p>
-                <p className="text-lg font-bold">{formatTon(selectedActualTon)}</p>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold">Real</p>
+                <p className="text-2xl font-black text-[rgb(var(--text))]">{formatTon(selectedActualTon)}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground pt-1">Meta Alcançada: <span className="font-bold text-foreground">{selectedPrize.progressPercent.toFixed(1)}%</span></p>
-            <p className="text-xl font-black text-blue-600 pt-1">R$ {selectedPrize.dynamicPrize.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground/70 pt-1">Meta Alcançada: <span className="font-bold text-[rgb(var(--text))]">{selectedPrize.progressPercent.toFixed(1)}%</span></p>
+            <p className="text-3xl font-black text-blue-600 pt-1">R$ {selectedPrize.dynamicPrize.toFixed(2)}</p>
           </div>
 
-          <div className="pt-4 border-t border-white/10 space-y-1">
+          <div className="pt-4 border-t border-white/10 space-y-2">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Resumo Acumulado ({activeSemester.label})</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground">Base Total</p>
-                <p className="text-sm font-bold">{formatTon(baseSemesterTon)}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Base Total</p>
+                <p className="text-xl font-black">{formatTon(baseSemesterTon)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Real Total</p>
-                <p className="text-sm font-bold">{formatTon(actualSemesterTon)}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Real Total</p>
+                <p className="text-xl font-black">{formatTon(actualSemesterTon)}</p>
               </div>
             </div>
             <div className="pt-3 space-y-2">
@@ -397,8 +397,8 @@ export default function TeamPage() {
                 <span className="text-sm font-bold text-blue-600">R$ {semesterPrize.dynamicPrize.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-end">
-                <span className="text-xs font-semibold text-muted-foreground">PRÊMIO ACUMULADO (MENSAL)</span>
-                <span className="text-2xl font-black text-emerald-600 leading-none">R$ {monthlyPrizesSum.toFixed(2)}</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PRÊMIO ACUMULADO (MENSAL)</span>
+                <span className="text-3xl font-black text-emerald-600 leading-none">R$ {monthlyPrizesSum.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -406,7 +406,7 @@ export default function TeamPage() {
       </div>
 
       <div className="h-full">
-        <div className="h-full glass-card p-6">
+        <div className="h-full glass-card p-8">
           <GrowthChart
             base={chartBase}
             actual={chartActual}
@@ -418,8 +418,8 @@ export default function TeamPage() {
   ) : null
 
   return (
-    <main className="min-h-screen bg-muted p-4 md:p-8 space-y-4 overflow-x-hidden">
-      <div className="flex items-center gap-5 flex-wrap">
+    <main className="min-h-screen bg-[rgb(var(--bg))] p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden">
+      <div className="flex items-center gap-6 flex-wrap">
         {team.logo && (
           <div className="p-1 rounded-2xl shadow-lg glass-card overflow-hidden flex items-center justify-center">
             <Image 
@@ -431,7 +431,7 @@ export default function TeamPage() {
             />
           </div>
         )}
-        <h1 className="text-3xl font-black tracking-tight flex-1 min-w-[200px] text-slate-900 dark:text-white drop-shadow-sm">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex-1 min-w-[200px] text-[rgb(var(--text))] drop-shadow-sm">
           {team.name}
         </h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -447,7 +447,7 @@ export default function TeamPage() {
           </Select>
           <Button
             variant="outline"
-            className="w-11 sm:w-auto px-2 sm:px-3 gap-2 cursor-pointer hover:shadow-sm transition-transform hover:-translate-y-[1px]"
+            className="h-12 w-11 sm:w-auto px-2 sm:px-4 gap-2 cursor-pointer hover:shadow-md transition-all duration-300 hover:-translate-y-1"
             onClick={handlePrint}
             disabled={!hasAnyInput}
             aria-label="Imprimir ou exportar"
@@ -463,10 +463,10 @@ export default function TeamPage() {
           <CardTitle>Acompanhamento Mensal / Total</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3 max-w-3xl lg:max-w-none">
+          <div className="space-y-4 max-w-3xl lg:max-w-none">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <Select value={period} onValueChange={v => setPeriod(v as string)}>
-                <SelectTrigger className="glass-input lg:w-[180px]">
+                <SelectTrigger className="glass-input h-14 text-base font-semibold lg:w-[200px] cursor-pointer">
                   <SelectValue placeholder="Total" />
                 </SelectTrigger>
                 <SelectContent>
@@ -479,14 +479,14 @@ export default function TeamPage() {
 
               <div className="relative flex-1 lg:max-w-md">
                 <Input
-                  className="glass-input pl-4 pr-12 h-11 text-lg font-semibold"
+                  className="glass-input pl-5 pr-14 h-14 text-xl font-bold transition-all duration-300"
                   type="number"
                   step="0.001"
                   placeholder={period === 'total' ? 'Volume total (t)' : `Volume em ${monthLabels[period as Month]} (t)`}
                   value={period === 'total' ? totalInput : monthInputs[period] || ''}
                   onChange={e => handleInputChange(e.target.value)}
                 />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold pointer-events-none">t</div>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground font-black pointer-events-none text-lg">t</div>
               </div>
             </div>
 

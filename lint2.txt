@@ -1,0 +1,12 @@
+﻿
+> premios-equipe-sulpet@0.1.0 lint
+> eslint
+
+
+C:\dev\premios-equipe-sulpet\components\GrowthChart.tsx
+   9:3   warning  'unit' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  10:3   warning  'decimals' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  71:34  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+Ô£û 3 problems (1 error, 2 warnings)
+

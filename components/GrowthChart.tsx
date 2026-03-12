@@ -6,14 +6,10 @@ export default function GrowthChart({
   base,
   actual,
   target,
-  unit = 't',
-  decimals = 2,
 }: {
   base: number
   actual: number
   target: number
-  unit?: string
-  decimals?: number
 }) {
   const primary = '#2563eb' // Blue 600
   const baseColor = '#64748b' // Slate 500
@@ -68,6 +64,7 @@ export default function GrowthChart({
               fill="currentColor"
               offset={10}
               style={{ fontSize: '12px', fontWeight: 700 }}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any) => typeof value === 'number' ? `${format(value)} t` : value}
             />
           </Bar>
