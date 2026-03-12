@@ -11,7 +11,6 @@ export const teams = {
       jun: 318.971,
     },
   },
-
   snack: {
     name: 'Equipe Snack',
     logo: '/logos/snack.png',

@@ -22,4 +22,33 @@
 body {
   background-color: rgb(var(--bg));
   color: rgb(var(--text));
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.dark .glass-card {
+  background: rgba(12, 28, 58, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.glass-input {
+  background: rgba(var(--bg), 0.5);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(var(--border), 0.5);
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-input:focus {
+  background: rgba(var(--bg), 0.8);
+  border-color: rgb(var(--primary));
+  box-shadow: 0 0 0 4px rgba(var(--primary), 0.1);
 }

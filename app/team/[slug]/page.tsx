@@ -1,18 +1,17 @@
 ﻿'use client'
 
-import * as React from 'react'
-import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
-import Image from 'next/image'
+import GrowthChart from '@/components/GrowthChart'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { teams } from '@/data/teams'
 import { calcPrizeProgress } from '@/lib/calc'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import GrowthChart from '@/components/GrowthChart'
-import { toast } from 'sonner'
 import { Printer } from 'lucide-react'
+import Image from 'next/image'
+import { useParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 const semesterMonths = {
   S1: ['jan', 'fev', 'mar', 'abr', 'mai', 'jun'] as const,
@@ -48,8 +47,6 @@ type Semester = {
 }
 
 type Params = { slug: string | string[] }
-
-type Unit = 'kg' | 't'
 
 const toNumber = (value: string) => {
   if (!value) return 0
@@ -109,7 +106,6 @@ export default function TeamPage() {
 
   const semesters = useMemo(() => team ? buildSemesters(team) : [], [team])
   const [semesterId, setSemesterId] = useState<string | null>(null)
-  const [unit, setUnit] = useState<Unit>('kg')
 
   const selectedSemesterId = useMemo(
     () => (semesterId && semesters.some(s => s.id === semesterId))
@@ -128,32 +124,33 @@ export default function TeamPage() {
   const [monthly, setMonthly] = useState<Record<string, Record<string, string>>>({})
 
   const base = activeSemester?.base ?? {}
-  const kgPerStoredUnit = 1000 // valores no data representam milhares de kg; multiplicamos por 1000 para obter kg
-  const toDisplay = (valueKg: number) => (unit === 'kg' ? valueKg : valueKg / 1000)
-
-  const baseInKg = Object.fromEntries(
-    Object.entries(base || {}).map(([month, value]) => [month, (value ?? 0) * kgPerStoredUnit]),
+  const baseInTon = Object.fromEntries(
+    Object.entries(base || {}).map(([month, value]) => [month, value ?? 0]),
   ) as Record<string, number>
-  const baseSemesterKg = (activeSemester?.months ?? []).reduce((sum, m) => sum + (baseInKg[m] ?? 0), 0)
+  const baseSemesterTon = (activeSemester?.months ?? []).reduce((sum, m) => sum + (baseInTon[m] ?? 0), 0)
 
   const monthInputs = monthly[activeSemesterId] || Object.fromEntries(months.map(m => [m, '']))
   const totalInput = totals[activeSemesterId] || ''
 
-  const inputToKg = (value: string) => toNumber(value) * (unit === 'kg' ? 1 : 1000)
+  const inputToTon = (value: string) => toNumber(value)
 
-  const monthlySumKg = months.reduce((acc, m) => acc + inputToKg(monthInputs[m] || ''), 0)
-  const actualSemesterKg = period === 'total'
-    ? (totalInput.trim() ? inputToKg(totalInput) : monthlySumKg)
-    : monthlySumKg
+  const actualSemesterTon = period === 'total'
+    ? (totalInput.trim() ? inputToTon(totalInput) : months.reduce((acc, m) => acc + inputToTon(monthInputs[m] || ''), 0))
+    : months.reduce((acc, m) => acc + inputToTon(monthInputs[m] || ''), 0)
 
-  const semesterPrize = calcPrizeProgress(baseSemesterKg, actualSemesterKg)
+  const semesterPrize = calcPrizeProgress(baseSemesterTon, actualSemesterTon)
+
+  const monthlyPrizeDetails = months.map(m => {
+    const bTon = baseInTon[m] ?? 0
+    const aTon = inputToTon(monthInputs[m] || '')
+    return calcPrizeProgress(bTon, aTon)
+  })
+  const monthlyPrizesSum = monthlyPrizeDetails.reduce((sum, p) => sum + p.dynamicPrize, 0)
 
   const selectedMonth = period === 'total' ? null : (period as Month)
-  const selectedBaseKg = selectedMonth ? baseInKg[selectedMonth] || 0 : baseSemesterKg
-  const selectedActualKg = selectedMonth ? inputToKg(monthInputs[selectedMonth] || '') : actualSemesterKg
-  const selectedBaseDisplay = toDisplay(selectedBaseKg)
-  const selectedActualDisplay = toDisplay(selectedActualKg)
-  const selectedPrize = calcPrizeProgress(selectedBaseKg, selectedActualKg)
+  const selectedBaseTon = selectedMonth ? baseInTon[selectedMonth] || 0 : baseSemesterTon
+  const selectedActualTon = selectedMonth ? inputToTon(monthInputs[selectedMonth] || '') : actualSemesterTon
+  const selectedPrize = calcPrizeProgress(selectedBaseTon, selectedActualTon)
 
   const hasAnyInput = (() => {
     const hasTotal = totalInput.trim() !== ''
@@ -161,13 +158,9 @@ export default function TeamPage() {
     return hasTotal || hasMonthly
   })()
 
-  const targetForSelectedKg = selectedBaseKg + selectedPrize.growthTarget
-  const targetForSemesterKg = baseSemesterKg + semesterPrize.growthTarget
-  const targetForSelectedDisplay = toDisplay(targetForSelectedKg)
-  const targetForSemesterDisplay = toDisplay(targetForSemesterKg)
-  const chartBase = selectedBaseDisplay
-  const chartActual = selectedActualDisplay
-  const chartTarget = period === 'total' ? targetForSemesterDisplay : targetForSelectedDisplay
+  const chartBase = selectedBaseTon
+  const chartActual = selectedActualTon
+  const chartTarget = selectedBaseTon + selectedPrize.growthTarget
 
   useEffect(() => {
     if (semesterPrize.progressPercent >= 100) {
@@ -176,6 +169,7 @@ export default function TeamPage() {
   }, [semesterPrize.progressPercent])
 
   const handleInputChange = (value: string) => {
+    if (!activeSemester) return
     if (period === 'total') {
       setTotals(prev => ({ ...prev, [activeSemester.id]: value }))
     } else {
@@ -189,31 +183,28 @@ export default function TeamPage() {
     }
   }
 
-  const formatNumber = (value: number, minimumFractionDigits = 2, maximumFractionDigits = 2) =>
-    value.toLocaleString('pt-BR', { minimumFractionDigits, maximumFractionDigits })
+  const formatNumber = (value: number, min = 2, max = 2) =>
+    value.toLocaleString('pt-BR', { minimumFractionDigits: min, maximumFractionDigits: max })
 
-  const formatKg = (valueKg: number) => formatNumber(valueKg, 2, 2)
-  const formatTon = (valueKg: number) => formatNumber(valueKg / 1000, 3, 3)
-  const formatMassPair = (valueKg: number) => `${formatKg(valueKg)} kg / ${formatTon(valueKg)} t`
-
-  const unitLabel = unit === 'kg' ? 'kg' : 't'
+  const formatTon = (valueTon: number) => `${formatNumber(valueTon, 3, 3)} t`
 
   const buildPrintHtml = () => {
+    if (!activeSemester || !team) return ''
     const rows = activeSemester.months.map(m => {
-      const baseValueKg = baseInKg[m] ?? 0
-      const realValueKg = inputToKg(monthInputs[m] || '')
-      const progress = calcPrizeProgress(baseValueKg, realValueKg).progressPercent
+      const baseValueTon = baseInTon[m] ?? 0
+      const realValueTon = inputToTon(monthInputs[m] || '')
+      const progress = calcPrizeProgress(baseValueTon, realValueTon).progressPercent
       return {
         month: monthLabels[m],
-        baseValueKg,
-        realValueKg,
+        baseValueTon,
+        realValueTon,
         progress,
       }
     })
 
-    // Se o usuário informou um total do semestre, não exibir linhas mensais (mesmo que existam valores antigos)
+    // Se o usuário informou um total do semestre, não exibir linhas mensais
     const isTotalAggregate = period === 'total' && totalInput.trim() !== ''
-    const detailedRows = isTotalAggregate ? [] : rows.filter(r => r.realValueKg > 0)
+    const detailedRows = isTotalAggregate ? [] : rows.filter(r => r.realValueTon > 0)
     const hasDetails = detailedRows.length > 0
 
     return `
@@ -226,28 +217,24 @@ export default function TeamPage() {
   <style>
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
-    body { margin:0; padding:32px 28px; font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; background:#f6f8fb; color:#0f172a; }
+    body { margin:0; padding:32px 28px; font-family: "Outfit", "Inter", system-ui, sans-serif; background:#f8fafc; color:#0f172a; }
     .container { max-width: 1100px; margin: 0 auto; }
     header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:24px; }
-    h1 { margin:0; font-size:28px; }
-    .subtitle { color:#475569; margin:4px 0 0; }
-    .badge { display:inline-flex; align-items:center; gap:6px; background:#e0e7ff; color:#4338ca; padding:6px 10px; border-radius:999px; font-weight:600; font-size:12px; letter-spacing:0.02em; }
-    .grid { display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom:18px; }
-    .card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; box-shadow:0 8px 24px rgba(15, 23, 42, 0.06); }
-    .card h3 { margin:0 0 6px; font-size:14px; letter-spacing:0.02em; text-transform:uppercase; color:#475569; }
-    .value { font-size:22px; margin:2px 0; font-weight:700; }
-    .muted { color:#64748b; font-size:12px; margin:0; }
-    table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(15, 23, 42, 0.06); }
-    th, td { padding:10px 12px; text-align:left; font-size:13px; }
-    th { background:#f8fafc; color:#0f172a; letter-spacing:0.01em; }
-    tbody tr:nth-child(even) { background:#fff; }
-    tbody tr:nth-child(odd) { background:#fdfefe; }
-    tbody tr:last-child td { border-bottom:0; }
-    td { border-bottom:1px solid #e2e8f0; }
-    tfoot td { font-weight:700; background:#f8fafc; }
-    .progress { font-weight:600; }
-    .small { font-size:11px; color:#475569; margin-top:6px; }
-    .pill { display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; box-shadow:0 6px 18px rgba(15,23,42,0.05); }
+    h1 { margin:0; font-size:28px; font-weight: 800; letter-spacing: -0.02em; }
+    .subtitle { color:#64748b; margin:4px 0 0; font-weight: 500; }
+    .badge { display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#2563eb; padding:8px 14px; border-radius:999px; font-weight:700; font-size:12px; border: 1px solid #dbeafe; }
+    .grid { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom:24px; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .card h3 { margin:0 0 8px; font-size:12px; letter-spacing:0.05em; text-transform:uppercase; color:#64748b; font-weight: 700; }
+    .value { font-size:24px; margin:2px 0; font-weight:800; color: #1e293b; }
+    .muted { color:#94a3b8; font-size:12px; margin:0; font-weight: 500; }
+    table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    th, td { padding:14px 16px; text-align:left; font-size:14px; }
+    th { background:#f1f5f9; color:#475569; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+     td { border-bottom:1px solid #f1f5f9; color: #334155; }
+    tfoot td { font-weight:800; background:#f8fafc; color: #0f172a; }
+    .progress { font-weight:700; color: #2563eb; }
+    .small { font-size:11px; color:#94a3b8; margin-top:12px; text-align: center; }
   </style>
 </head>
 <body>
@@ -255,27 +242,28 @@ export default function TeamPage() {
     <header>
       <div>
         <h1>${team.name}</h1>
-        <p class="subtitle">${activeSemester.label} • Valores em kg e t</p>
+        <p class="subtitle">${activeSemester.label} • Valores em toneladas (t)</p>
       </div>
-      <div class="badge">Relatório pronto para impressão</div>
+      <div class="badge">Relatório Consolidado</div>
     </header>
 
     <div class="grid">
       <div class="card">
-        <h3>Resumo do semestre</h3>
-        <div class="value">${formatMassPair(actualSemesterKg)}</div>
-        <p class="muted">Real acumulado (kg / t)</p>
-        <p class="muted">Base: ${formatMassPair(baseSemesterKg)}</p>
+        <h3>Resumo Real</h3>
+        <div class="value">${formatTon(actualSemesterTon)}</div>
+        <p class="muted">Base: ${formatTon(baseSemesterTon)}</p>
       </div>
       <div class="card">
-        <h3>Meta de crescimento (25%)</h3>
-        <div class="value">${formatMassPair(targetForSemesterKg)}</div>
-        <p class="muted">Precisa atingir: +${formatMassPair(semesterPrize.growthTarget)}</p>
+        <h3>Crescimento (25%)</h3>
+        <div class="value">${formatTon(baseSemesterTon + semesterPrize.growthTarget)}</div>
+        <p class="muted">Meta: +${formatTon(semesterPrize.growthTarget)}</p>
       </div>
       <div class="card">
-        <h3>Progresso</h3>
-        <div class="value">${formatNumber(semesterPrize.progressPercent, 1, 1)}%</div>
-        <p class="muted">Prêmio estimado: R$ ${formatNumber(semesterPrize.dynamicPrize)}</p>
+        <h3>Resultados</h3>
+        <div class="value" style="color: #2563eb;">R$ ${formatNumber(semesterPrize.dynamicPrize)}</div>
+        <p class="muted">Prêmio Projetado</p>
+        <div class="value" style="font-size:18px; color: #059669; margin-top:8px;">R$ ${formatNumber(monthlyPrizesSum)}</div>
+        <p class="muted">Prêmio Acumulado</p>
       </div>
     </div>
 
@@ -284,9 +272,9 @@ export default function TeamPage() {
       <table>
         <thead>
           <tr>
-            <th style="width:28%">Mês</th>
-            <th>Base (kg / t)</th>
-            <th>Real informado (kg / t)</th>
+            <th style="width:25%">Mês</th>
+            <th>Base (t)</th>
+            <th>Venda Real (t)</th>
             <th>Progresso</th>
           </tr>
         </thead>
@@ -294,44 +282,32 @@ export default function TeamPage() {
           ${detailedRows.map(r => `
             <tr>
               <td>${r.month}</td>
-              <td>${formatMassPair(r.baseValueKg)}</td>
-              <td>${formatMassPair(r.realValueKg)}</td>
+              <td>${formatTon(r.baseValueTon)}</td>
+              <td>${formatTon(r.realValueTon)}</td>
               <td class="progress">${formatNumber(r.progress, 1, 1)}%</td>
             </tr>
           `).join('')}
         </tbody>
         <tfoot>
           <tr>
-            <td>Total semestre</td>
-            <td>${formatMassPair(baseSemesterKg)}</td>
-            <td>${formatMassPair(actualSemesterKg)}</td>
-            <td>${formatNumber(semesterPrize.progressPercent, 1, 1)}%</td>
+            <td>Total Semestre</td>
+            <td>${formatTon(baseSemesterTon)}</td>
+            <td>${formatTon(actualSemesterTon)}</td>
+            <td class="progress">${formatNumber(semesterPrize.progressPercent, 1, 1)}%</td>
           </tr>
         </tfoot>
       </table>
       ` : `
-      <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
-        <div>
-          <h3>Sem detalhamento mensal</h3>
-          <p class="muted">Foi informado apenas o total do semestre.</p>
-        </div>
-        <div class="pill">
-          <div>
-            <div class="muted">Base</div>
-            <div class="value" style="font-size:18px; margin:0;">${formatMassPair(baseSemesterKg)}</div>
+      <div class="card" style="text-align: center; padding: 40px;">
+          <h3 style="margin-bottom: 16px;">Total do Semestre</h3>
+          <div style="display: flex; justify-content: center; gap: 32px;">
+            <div><p class="muted">Base</p><div class="value">${formatTon(baseSemesterTon)}</div></div>
+            <div><p class="muted">Real</p><div class="value">${formatTon(actualSemesterTon)}</div></div>
+            <div><p class="muted">Progresso</p><div class="value" style="color: #2563eb;">${formatNumber(semesterPrize.progressPercent, 1, 1)}%</div></div>
           </div>
-          <div>
-            <div class="muted">Real</div>
-            <div class="value" style="font-size:18px; margin:0;">${formatMassPair(actualSemesterKg)}</div>
-          </div>
-          <div>
-            <div class="muted">Progresso</div>
-            <div class="value" style="font-size:18px; margin:0;">${formatNumber(semesterPrize.progressPercent, 1, 1)}%</div>
-          </div>
-        </div>
       </div>
       `}
-      <p class="small">Use a opção de imprimir do navegador (Ctrl+P / Command+P) para salvar em PDF ou enviar para a impressora.</p>
+      <p class="small">Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
     </section>
   </div>
 </body>
@@ -344,6 +320,7 @@ export default function TeamPage() {
       toast.error('⚠️ Preencha algum valor antes de imprimir ou exportar.')
       return
     }
+    if (!team || !activeSemester) return
     if (typeof window === 'undefined') return
     const html = buildPrintHtml()
 
@@ -382,47 +359,81 @@ export default function TeamPage() {
 
   if (!team || !activeSemester) return null
 
-  const InfoAndCharts = (
+  const InfoAndCharts = activeSemester && team ? (
     <div className="grid lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <div className="rounded-lg border bg-card/60 p-4 shadow-sm space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">{selectedMonth ? `Mês ${selectedMonth.toUpperCase()}` : activeSemester.label}</p>
-          <p>Base considerada: <b>{formatMassPair(selectedBaseKg)}</b></p>
-          <p>Real informado: <b>{formatMassPair(selectedActualKg)}</b></p>
-          <p>Progresso da meta: <b>{selectedPrize.progressPercent.toFixed(1)}%</b></p>
-          <p className="text-lg">Prêmio estimado: <b>R$ {selectedPrize.dynamicPrize.toFixed(2)}</b></p>
-        </div>
+        <div className="glass-card p-6 space-y-4">
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{selectedMonth ? `Período: ${selectedMonth.toUpperCase()}` : `Semestre: ${activeSemester.label}`}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Base</p>
+                <p className="text-lg font-bold">{formatTon(selectedBaseTon)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Real</p>
+                <p className="text-lg font-bold">{formatTon(selectedActualTon)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">Meta Alcançada: <span className="font-bold text-foreground">{selectedPrize.progressPercent.toFixed(1)}%</span></p>
+            <p className="text-xl font-black text-blue-600 pt-1">R$ {selectedPrize.dynamicPrize.toFixed(2)}</p>
+          </div>
 
-        <div className="rounded-lg border bg-card/60 p-4 shadow-sm space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Semestre {activeSemester.label}</p>
-          <p>Base {activeSemester.label}: <b>{formatMassPair(baseSemesterKg)}</b></p>
-          <p>Real acumulado: <b>{formatMassPair(actualSemesterKg)}</b></p>
-          <p>Progresso da meta: <b>{semesterPrize.progressPercent.toFixed(1)}%</b></p>
-          <p className="text-lg">Prêmio projetado: <b>R$ {semesterPrize.dynamicPrize.toFixed(2)}</b></p>
+          <div className="pt-4 border-t border-white/10 space-y-1">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Resumo Acumulado ({activeSemester.label})</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Base Total</p>
+                <p className="text-sm font-bold">{formatTon(baseSemesterTon)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Real Total</p>
+                <p className="text-sm font-bold">{formatTon(actualSemesterTon)}</p>
+              </div>
+            </div>
+            <div className="pt-3 space-y-2">
+              <div className="flex justify-between items-end">
+                <span className="text-xs font-medium text-muted-foreground">Prêmio Projetado (Semestre)</span>
+                <span className="text-sm font-bold text-blue-600">R$ {semesterPrize.dynamicPrize.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-end">
+                <span className="text-xs font-semibold text-muted-foreground">PRÊMIO ACUMULADO (MENSAL)</span>
+                <span className="text-2xl font-black text-emerald-600 leading-none">R$ {monthlyPrizesSum.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="h-full">
-        <div className="h-[240px] lg:h-[260px] w-full bg-card/60 rounded-lg border p-2 shadow-sm">
+        <div className="h-full glass-card p-6">
           <GrowthChart
             base={chartBase}
             actual={chartActual}
             target={chartTarget}
-            unit={unitLabel}
-            decimals={unit === 't' ? 3 : 2}
           />
         </div>
       </div>
     </div>
-  )
+  ) : null
 
   return (
     <main className="min-h-screen bg-muted p-4 md:p-8 space-y-4 overflow-x-hidden">
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-5 flex-wrap">
         {team.logo && (
-          <Image src={team.logo} alt={team.name} width={60} height={60} />
+          <div className="p-1 rounded-2xl shadow-lg glass-card overflow-hidden flex items-center justify-center">
+            <Image 
+              src={team.logo} 
+              alt={team.name} 
+              width={120} 
+              height={120} 
+              className="w-20 h-20 md:w-28 md:h-28 object-contain transition-transform hover:scale-110 duration-500"
+            />
+          </div>
         )}
-        <h1 className="text-2xl font-bold flex-1 min-w-[200px]">{team.name}</h1>
+        <h1 className="text-3xl font-black tracking-tight flex-1 min-w-[200px] text-slate-900 dark:text-white drop-shadow-sm">
+          {team.name}
+        </h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={selectedSemesterId ?? ''} onValueChange={v => { setSemesterId(v); setPeriod('total') }}>
             <SelectTrigger className="w-full sm:w-[180px] lg:w-[150px] cursor-pointer hover:bg-muted/60 transition-colors">
@@ -453,53 +464,44 @@ export default function TeamPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3 max-w-3xl lg:max-w-none">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <Select value={period} onValueChange={v => setPeriod(v as string)}>
-                <SelectTrigger className="cursor-pointer hover:bg-muted/60 transition-colors">
+                <SelectTrigger className="glass-input lg:w-[180px]">
                   <SelectValue placeholder="Total" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="total">TOTAL</SelectItem>
+                  <SelectItem value="total">FECHAMENTO TOTAL</SelectItem>
                   {months.map(m => (
-                    <SelectItem key={m} value={m}>{m.toUpperCase()}</SelectItem>
+                    <SelectItem key={m} value={m}>{monthLabels[m].toUpperCase()}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              <Input
-                className="w-full lg:max-w-sm"
-                type="number"
-                placeholder={period === 'total' ? 'Total no semestre' : 'Venda do mês'}
-                value={period === 'total' ? totalInput : monthInputs[period] || ''}
-                onChange={e => handleInputChange(e.target.value)}
-              />
-
-              <Select value={unit} onValueChange={v => setUnit(v as Unit)}>
-                <SelectTrigger className="w-full sm:w-[120px] lg:w-[90px] cursor-pointer hover:bg-muted/60 transition-colors">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="kg">kg</SelectItem>
-                  <SelectItem value="t">t</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative flex-1 lg:max-w-md">
+                <Input
+                  className="glass-input pl-4 pr-12 h-11 text-lg font-semibold"
+                  type="number"
+                  step="0.001"
+                  placeholder={period === 'total' ? 'Volume total (t)' : `Volume em ${monthLabels[period as Month]} (t)`}
+                  value={period === 'total' ? totalInput : monthInputs[period] || ''}
+                  onChange={e => handleInputChange(e.target.value)}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold pointer-events-none">t</div>
+              </div>
             </div>
 
             {period !== 'total' && (
-              <p className="text-sm text-muted-foreground">
-                Base {period.toUpperCase()} {activeSemester.label}: <b className="text-foreground">{formatMassPair(baseInKg[period] ?? 0)}</b>
+              <p className="text-sm text-muted-foreground font-medium animate-in fade-in slide-in-from-left-2 transition-all">
+                Base {monthLabels[period as Month]} {activeSemester.label}: <b className="text-foreground">{formatTon(baseInTon[period] ?? 0)}</b>
               </p>
             )}
 
             {period === 'total' && (
-              <p className="text-xs text-muted-foreground">
-                Deixe em branco para usar a soma dos meses ou preencha o total acumulado ({activeSemester.label}). Unidade selecionada: {unit}.
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Informe o volume total acumulado do semestre ou deixe em branco para somar os meses preenchidos individualmente. 
+                <span className="block font-bold text-foreground mt-1">Todos os valores devem ser informados em Toneladas (t).</span>
               </p>
             )}
-
-            <p className="text-[11px] text-muted-foreground">
-              Os resultados são sempre exibidos em kg e toneladas; escolha a unidade apenas para informar os dados.
-            </p>
           </div>
 
           {InfoAndCharts}
