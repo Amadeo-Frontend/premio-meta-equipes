@@ -393,12 +393,12 @@ export default function TeamPage() {
             </div>
             <div className="pt-3 space-y-2">
               <div className="flex justify-between items-end">
-                <span className="text-xs font-medium text-muted-foreground">Prêmio Projetado (Semestre)</span>
-                <span className="text-sm font-bold text-blue-600">R$ {semesterPrize.dynamicPrize.toFixed(2)}</span>
+                <span className="text-xs font-medium text-muted-foreground">Prêmio Acumulado (Mensal)</span>
+                <span className="text-sm font-bold text-emerald-600">R$ {monthlyPrizesSum.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-end">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PRÊMIO ACUMULADO (MENSAL)</span>
-                <span className="text-3xl font-black text-emerald-600 leading-none">R$ {monthlyPrizesSum.toFixed(2)}</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PRÊMIO PROJETADO (SEMESTRE)</span>
+                <span className="text-3xl font-black text-blue-600 leading-none">R$ {semesterPrize.dynamicPrize.toFixed(2)}</span>
               </div>
             </div>
           </div>
