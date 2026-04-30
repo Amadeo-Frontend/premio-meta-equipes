@@ -115,6 +115,9 @@ export default function TeamPage() {
   )
 
   const activeSemester = semesters.find(s => s.id === selectedSemesterId)
+
+  if (!team || !activeSemester) return null
+
   const months = activeSemester?.months ?? semesterMonths.S1
   const activeSemesterId = activeSemester?.id ?? '__none__'
 
@@ -138,19 +141,19 @@ export default function TeamPage() {
     ? (totalInput.trim() ? inputToTon(totalInput) : months.reduce((acc, m) => acc + inputToTon(monthInputs[m] || ''), 0))
     : months.reduce((acc, m) => acc + inputToTon(monthInputs[m] || ''), 0)
 
-  const semesterPrize = calcPrizeProgress(baseSemesterTon, actualSemesterTon)
+  const semesterPrize = calcPrizeProgress(baseSemesterTon, actualSemesterTon, team.maxPrize)
 
   const monthlyPrizeDetails = months.map(m => {
     const bTon = baseInTon[m] ?? 0
     const aTon = inputToTon(monthInputs[m] || '')
-    return calcPrizeProgress(bTon, aTon)
+    return calcPrizeProgress(bTon, aTon, team.maxPrize)
   })
   const monthlyPrizesSum = monthlyPrizeDetails.reduce((sum, p) => sum + p.dynamicPrize, 0)
 
   const selectedMonth = period === 'total' ? null : (period as Month)
   const selectedBaseTon = selectedMonth ? baseInTon[selectedMonth] || 0 : baseSemesterTon
   const selectedActualTon = selectedMonth ? inputToTon(monthInputs[selectedMonth] || '') : actualSemesterTon
-  const selectedPrize = calcPrizeProgress(selectedBaseTon, selectedActualTon)
+  const selectedPrize = calcPrizeProgress(selectedBaseTon, selectedActualTon, team.maxPrize)
 
   const hasAnyInput = (() => {
     const hasTotal = totalInput.trim() !== ''
@@ -193,7 +196,7 @@ export default function TeamPage() {
     const rows = activeSemester.months.map(m => {
       const baseValueTon = baseInTon[m] ?? 0
       const realValueTon = inputToTon(monthInputs[m] || '')
-      const progress = calcPrizeProgress(baseValueTon, realValueTon).progressPercent
+      const progress = calcPrizeProgress(baseValueTon, realValueTon, team.maxPrize).progressPercent
       return {
         month: monthLabels[m],
         baseValueTon,
@@ -357,7 +360,6 @@ export default function TeamPage() {
     }
   }
 
-  if (!team || !activeSemester) return null
 
   const InfoAndCharts = activeSemester && team ? (
     <div className="grid lg:grid-cols-2 gap-8 items-start">

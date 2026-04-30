@@ -1,4 +1,4 @@
-export function calcPrizeProgress(baseSemester: number, actualSemester: number) {
+export function calcPrizeProgress(baseSemester: number, actualSemester: number, maxPrize: number = 10000) {
   const growthTarget = baseSemester * 0.25
   const achieved = actualSemester - baseSemester
 
@@ -8,8 +8,8 @@ export function calcPrizeProgress(baseSemester: number, actualSemester: number) 
 
   return {
     progressPercent: progress * 100,      // % da meta de 25%
-    dynamicPrize: progress * 10000,        // prêmio proporcional
-    finalPrize: progress >= 1 ? 10000 : progress * 10000,
+    dynamicPrize: progress * maxPrize,        // prêmio proporcional
+    finalPrize: progress >= 1 ? maxPrize : progress * maxPrize,
     growthTarget,
   }
 }

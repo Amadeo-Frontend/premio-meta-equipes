@@ -1,7 +1,8 @@
 export const teams = {
   lunch: {
-    name: 'Equipe Lunch',
+    name: 'Equipe Lunch Dog',
     logo: '/logos/lunch.png',
+    maxPrize: 10000,
     base2025: {
       jan: 290.742,
       fev: 279.268,
@@ -11,9 +12,10 @@ export const teams = {
       jun: 318.971,
     },
   },
-  snack: {
-    name: 'Equipe Snack',
+  varejo: {
+    name: 'Equipe Varejo',
     logo: '/logos/snack.png',
+    maxPrize: 5000,
     base2025: {
       jan: 55.976,
       fev: 57.554,
@@ -27,6 +29,7 @@ export const teams = {
   imbramil: {
     name: 'Equipe Imbramil',
     logo: '/logos/imbramil.png',
+    maxPrize: 5000,
     base2025: {
       jan: 55.997,
       fev: 68.847,
