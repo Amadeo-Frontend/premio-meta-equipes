@@ -3,7 +3,7 @@ export const teams = {
     name: 'Equipe Lunch Dog',
     logo: '/logos/lunch.png',
     maxPrize: 10000,
-    base2025: {
+    base2026: {
       jan: 290.742,
       fev: 279.268,
       mar: 276.908,
@@ -11,8 +11,8 @@ export const teams = {
       mai: 304.513,
       jun: 318.971,
     },
-    fechado2025: 1829.308,
-    base2025S2: {
+    fechado2026: 1829.308,
+    base2026S2: {
       jul: 312.414,
       ago: 312.414,
       set: 312.414,
@@ -25,7 +25,7 @@ export const teams = {
     name: 'Equipe Varejo',
     logo: '/logos/snack.png',
     maxPrize: 5000,
-    base2025: {
+    base2026: {
       jan: 55.976,
       fev: 57.554,
       mar: 56.587,
@@ -33,8 +33,8 @@ export const teams = {
       mai: 53.985,
       jun: 39.957,
     },
-    fechado2025: 333.255,
-    base2025S2: {
+    fechado2026: 333.255,
+    base2026S2: {
       jul: 59.209,
       ago: 59.209,
       set: 59.209,
@@ -48,7 +48,7 @@ export const teams = {
     name: 'Equipe Imbramil',
     logo: '/logos/imbramil.png',
     maxPrize: 5000,
-    base2025: {
+    base2026: {
       jan: 55.997,
       fev: 68.847,
       mar: 45.195,
@@ -56,8 +56,8 @@ export const teams = {
       mai: 56.579,
       jun: 56.579,
     },
-    fechado2025: 355.875,
-    base2025S2: {
+    fechado2026: 355.875,
+    base2026S2: {
       jul: 59.060,
       ago: 55.470,
       set: 60.526,
