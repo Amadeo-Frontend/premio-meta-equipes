@@ -11,6 +11,15 @@ export const teams = {
       mai: 304.513,
       jun: 318.971,
     },
+    fechado2025: 1829.308,
+    base2025S2: {
+      jul: 312.414,
+      ago: 312.414,
+      set: 312.414,
+      out: 312.414,
+      nov: 312.414,
+      dez: 312.413,
+    },
   },
   varejo: {
     name: 'Equipe Varejo',
@@ -23,6 +32,15 @@ export const teams = {
       abr: 54.548,
       mai: 53.985,
       jun: 39.957,
+    },
+    fechado2025: 333.255,
+    base2025S2: {
+      jul: 59.209,
+      ago: 59.209,
+      set: 59.209,
+      out: 59.209,
+      nov: 59.209,
+      dez: 59.210,
     },
   },
 
@@ -38,6 +56,7 @@ export const teams = {
       mai: 56.579,
       jun: 56.579,
     },
+    fechado2025: 355.875,
     base2025S2: {
       jul: 59.060,
       ago: 55.470,

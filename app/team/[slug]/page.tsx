@@ -44,6 +44,7 @@ type Semester = {
   label: string
   months: readonly Month[]
   base: Record<string, number>
+  fechadoTotal?: number
 }
 
 type Params = { slug: string | string[] }
@@ -82,6 +83,9 @@ function buildSemesters(team: Record<string, unknown>): Semester[] {
     const year = Number(match[1])
     const sem = (match[2] as SemesterKey | undefined) ?? 'S1'
     const months = semesterMonths[sem]
+    const fechadoKey = key.replace('base', 'fechado')
+    const fechadoTotal = team[fechadoKey] as number | undefined
+
     list.push({
       id: `${year}-${sem}`,
       year,
@@ -89,8 +93,10 @@ function buildSemesters(team: Record<string, unknown>): Semester[] {
       label: `${year} ${sem === 'S1' ? 'Jan-Jun' : 'Jul-Dez'}`,
       months,
       base: value as Record<string, number>,
+      fechadoTotal,
     })
   })
+  // Sort and return
   return list.sort((a, b) => a.year === b.year ? a.sem.localeCompare(b.sem) : a.year - b.year)
 }
 
@@ -108,9 +114,11 @@ export default function TeamPage() {
   const [semesterId, setSemesterId] = useState<string | null>(null)
 
   const selectedSemesterId = useMemo(
-    () => (semesterId && semesters.some(s => s.id === semesterId))
-      ? semesterId
-      : semesters[0]?.id ?? null,
+    () => {
+      if (semesterId && semesters.some(s => s.id === semesterId)) return semesterId
+      // Default to the last semester (e.g., S2 instead of S1)
+      return semesters.length > 0 ? semesters[semesters.length - 1].id : null
+    },
     [semesterId, semesters],
   )
 
@@ -133,7 +141,7 @@ export default function TeamPage() {
   const baseSemesterTon = (activeSemester?.months ?? []).reduce((sum, m) => sum + (baseInTon[m] ?? 0), 0)
 
   const monthInputs = monthly[activeSemesterId] || Object.fromEntries(months.map(m => [m, '']))
-  const totalInput = totals[activeSemesterId] || ''
+  const totalInput = totals[activeSemesterId] ?? (activeSemester?.fechadoTotal !== undefined ? activeSemester.fechadoTotal.toString() : '')
 
   const inputToTon = (value: string) => toNumber(value)
 
